@@ -1,0 +1,16 @@
+{
+  "name": "project-dna",
+  "description": "Create, maintain, and audit Project DNA — root project documents with implementation-independent invariants",
+  "version": "1.0.0",
+  "homepage": "https://github.com/SizovOleg/project-dna",
+  "repository": "https://github.com/SizovOleg/project-dna",
+  "license": "MIT",
+  "keywords": [
+    "architecture",
+    "documentation",
+    "project-management",
+    "invariants",
+    "domain-modeling",
+    "agent-skills"
+  ]
+}
