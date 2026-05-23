@@ -156,6 +156,29 @@ MIT
 
 DNA (Decision Nucleic Acid) — компактный документ (2-5 страниц), содержащий только решения, верные **независимо от реализации**. Без технологий, фреймворков, моделей. Только «что» и «почему».
 
+```mermaid
+graph TD
+    DNA["DNA.md<br/><i>Инварианты для человека</i>"]
+    RNA["RNA / Harness<br/><i>Enforcement для агента</i>"]
+    REQ["Requirements"]
+    TD["Technical Design"]
+    CODE["Код + Тесты"]
+    
+    DNA -->|транслируется в| RNA
+    RNA -->|конкретизируется в| REQ
+    REQ -->|реализуется через| TD
+    TD -->|генерирует| CODE
+    CODE -.->|DNA-аудит| DNA
+    
+    RNA --- CLAUDE["CLAUDE.md"]
+    RNA --- SKILLS["Скиллы"]
+    RNA --- MCP["Плагины / MCP"]
+
+    style DNA fill:#2d6a4f,stroke:#1b4332,color:#fff
+    style RNA fill:#40916c,stroke:#2d6a4f,color:#fff
+    style CODE fill:#52b788,stroke:#40916c,color:#fff
+```
+
 ## Проблема
 
 Главный риск работы с AI-агентами — не плохой код, а **код, который решает не ту задачу**. Агент пишет отличный код, проходящий все тесты — но тесты проверяют не то, потому что никто не записал, что на самом деле важно.
@@ -165,6 +188,27 @@ DNA решает эту проблему: даёт агенту набор **и�
 ## Экосистема трёх скиллов
 
 Project DNA работает в связке с двумя другими скиллами:
+
+```mermaid
+graph LR
+    subgraph "ЧТО — Инварианты"
+        DNA_S["project-dna"]
+    end
+    subgraph "КАК — Дисциплина"
+        ARCH["architect-cc-workflow"]
+    end
+    subgraph "ПРАВДА? — Эпистемика"
+        RES["research-with-ai"]
+    end
+
+    DNA_S <-->|"инварианты<br/>определяют workflow"| ARCH
+    ARCH <-->|"паттерны ошибок<br/>определяют верификацию"| RES
+    RES <-->|"критерии истинности<br/>уточняют инварианты"| DNA_S
+
+    style DNA_S fill:#2d6a4f,stroke:#1b4332,color:#fff
+    style ARCH fill:#e76f51,stroke:#c1440e,color:#fff
+    style RES fill:#264653,stroke:#1a323d,color:#fff
+```
 
 | Скилл | Домен | Вопрос |
 |-------|-------|--------|
@@ -191,6 +235,25 @@ Project DNA работает в связке с двумя другими ски
 | **Создание RNA** | «создай RNA», «создай harness» | Трансляция инвариантов в правила стека |
 
 Подробное описание режимов: **[Modes RU](docs/modes-ru.md)** | **[Modes EN](docs/modes-en.md)**
+
+## Четыре слоя DNA
+
+```mermaid
+graph TB
+    subgraph DNA["Документ DNA"]
+        ONT["Онтология<br/><i>Что существует и как связано</i>"]
+        DEO["Деонтика<br/><i>Что допустимо и что запрещено</i>"]
+        AXI["Аксиология<br/><i>Что ценно и что нет</i>"]
+        PRA["Праксеология<br/><i>Как действовать</i>"]
+    end
+    
+    ONT --> DEO --> AXI --> PRA
+
+    style ONT fill:#2d6a4f,stroke:#1b4332,color:#fff
+    style DEO fill:#40916c,stroke:#2d6a4f,color:#fff
+    style AXI fill:#52b788,stroke:#40916c,color:#000
+    style PRA fill:#95d5b2,stroke:#52b788,color:#000
+```
 
 ## Установка
 
