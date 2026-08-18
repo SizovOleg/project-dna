@@ -1,6 +1,6 @@
 ---
 name: architect-cc-workflow
-description: "Universal workflow protocol для пары architect (Claude.ai) + Claude Code в DNA/RNA проектах. Используй ВСЕГДА при: формулировании commands к Claude Code, написании DevPrompt'ов, ревью workflow между sessions, обнаружении систематических ошибок architect-side, планировании phase transitions. Триггеры: «напиши команду Claude Code», «напиши DevPrompt», «как мне дать задачу», «почему architect ошибается», «как валидировать решение», «что architect решает что Claude Code», «верификация спеков», «verification protocol», «error budget», «assumptions section», «boundaries Claude Code architect». Скилл кодифицирует уроки из Phase 1-2 sat-revisit-tool: ~10% architect error rate из-за LLM structural limits, защиты через verification + probe-first + assumption declaration + state refresh + hard iteration limits. НЕ для DNA creation (project-dna) или PRD writing (prd-coauthoring) или scientific methodology (research-with-ai)."
+description: "Workflow protocol для пары architect (Claude.ai) + Claude Code в DNA/RNA проектах. Используй ВСЕГДА при: формулировании команд и DevPrompt'ов для Claude Code, ревью workflow между сессиями, обнаружении систематических ошибок, планировании phase transitions. Триггеры: «напиши команду Claude Code», «напиши DevPrompt», «как дать задачу», «почему architect ошибается», «как валидировать решение», «верификация спеков», «verification protocol», «error budget», «assumptions section», «отчёт от Claude Code», «агент врёт что готово», «confidence markers», «raw artifact review», «когда прерывать», «как часто отчитываться», «тесты для скилла», «регрессия промпта». Кодифицирует защиты от структурных ошибок обеих сторон: architect-side (~10% error rate) и CC-side (самоотчёт о завершении, числовая слепота, дрейф контекста), плюс runtime observability и regression suite для самого скилла. НЕ для DNA creation (project-dna), PRD (prd-coauthoring), научной методологии (research-with-ai)."
 license: MIT
 ---
 
@@ -10,21 +10,32 @@ license: MIT
 
 ## Зачем нужен этот скилл
 
-Architect (LLM) делает структурные ошибки при ~10% rate из-за:
+В паре architect + Claude Code **обе стороны** — LLM со структурными failure modes. Защиты нужны симметричные.
+
+**Architect-side ошибки (~10% rate):**
 
 1. **No persistent state** — каждое сообщение fresh context window, repo state reconstruct из памяти + prior conversation
 2. **Pattern matching from training** — confidently generates plausible-but-wrong assertions from training precedents
 3. **Confabulation risk** — claim знание литературы/кода без actual verification
 
-Эти ошибки systematic, не accidental. Они **не исчезнут** через "будь внимательнее" — нужны structural defenses.
+**Claude Code-side ошибки** сводятся к **четырём корневым причинам** (не к раздутому списку симптомов):
 
-Скилл кодифицирует workflow protocol который catches errors **до execution**, минимизирует wasted sessions, четко разделяет responsibility между architect и Claude Code.
+1. **Likely-not-true generation** — модель генерирует статистически вероятное продолжение, не истинное. Проявления: подхалимство (вероятно угодить), галлюцинация (вероятнее подтвердить, чем признать провал), **самоотчёт о завершении** («task complete, all tests pass» как продолжение по формату, а не как установленный факт).
+2. **Attention degradation** — туннельное зрение (правило в середине длинного промпта игнорируется) + дрейф контекста (к 30-му ходу правила из начала сессии забыты). Деградация резкая, не плавная.
+3. **Numeric/temporal blindness** — числа токенизируются как текст, символьного исчисления нет. Дата — вероятность, не факт. Расхождения значений между источниками не ловятся reasoning'ом.
+4. **No trust boundary** — модель не различает инструкцию и данные. Prompt injection через заражённый документ в контексте.
+
+Эти ошибки systematic, не accidental. Они **не лечатся** через «будь внимательнее» — это инвариантные свойства архитектуры transformer + RLHF, не дефекты конкретной модели. Нужны structural defenses, спроектированные **вокруг** ограничений.
+
+**Ключевой принцип:** «здорового агента не будет». Цель не устранить ошибки, а построить **замкнутый контур** (задача → действие → внешняя проверка → корректировка), где ошибки под контролем.
+
+Скилл кодифицирует bidirectional protocol: ловит architect errors **до execution** (§3 verification) и CC errors **до acceptance** (§11–14), обеспечивает наблюдаемость в рантайме (§15) и проверяемость самого скилла (§16).
 
 ## Связанные скиллы (читай первыми если применимо)
 
-- **`project-dna`** — создание DNA документа. **Этот workflow protocol активируется ПОСЛЕ создания DNA**, для execution phase. Project-dna — про "что" и "почему", architect-cc-workflow — про "как взаимодействовать при реализации".
-- **`pipeline-development`** — техническая реализация pipeline сервисов. **Cross-reference**: architect-cc-workflow специфицирует workflow rules, pipeline-development специфицирует technical patterns. Используй вместе при разработке кода.
-- **`research-with-ai`** — научная методология. Orthogonal — research-with-ai про epistemic discipline (что считать истиной), architect-cc-workflow про execution discipline (как достигать решений).
+- **`project-dna`** — создание DNA документа. **Этот workflow protocol активируется ПОСЛЕ создания DNA**, для execution phase. Project-dna — про «что» и «почему», architect-cc-workflow — про «как взаимодействовать при реализации». Pre-action protocol (DNA) и Phase-end report (здесь) комплементарны: первый перед изменением, второй после.
+- **`pipeline-development`** — техническая реализация pipeline сервисов. **Cross-reference**: architect-cc-workflow специфицирует workflow rules, pipeline-development — technical patterns. Используй вместе при разработке кода.
+- **`research-with-ai`** — научная методология. Orthogonal: research-with-ai про epistemic discipline (что считать истиной), architect-cc-workflow про execution discipline (как достигать решений).
 
 ## Основные принципы
 
@@ -49,7 +60,7 @@ Architect (LLM) делает структурные ошибки при ~10% rat
 
 **Antipattern:** architect specifies LOC estimates, type signatures, exact function names. Claude Code видит реальный код, делает это лучше.
 
-**Antipattern:** Claude Code defers acceptance threshold к architect "knows better". Threshold — научное решение, architect owns. Implementation pattern — engineering, Claude Code owns.
+**Antipattern:** Claude Code defers acceptance threshold к architect «knows better». Threshold — научное решение, architect owns. Implementation pattern — engineering, Claude Code owns.
 
 ### 2. Architect command format
 
@@ -75,6 +86,8 @@ Assumptions (verify перед execute):
 
 Decision points для escalation:
 - [conditions when к stop and ask]
+
+Signal budget: [ожидаемое число BLOCK/NOTE, см. §15]
 
 Не specify:
 - exact module boundaries (CC decides)
@@ -136,22 +149,22 @@ Format:
 ### Awaiting architect confirmation
 ```
 
-Если architect command содержит no constants/assumptions to verify (routine: "run tests", "commit current state") → execute directly.
+Если architect command содержит no constants/assumptions to verify (routine: «run tests», «commit current state») → execute directly.
 
-**4. Routine vs verifiable commands**
+**Routine vs verifiable commands**
 
 Verify | Don't verify
 ---|---
-DevPrompt specs | "git status"
-Plans (multi-step) | "run pytest"
-Acceptance criteria | "commit current state"
-Numeric constraints | "push к origin"
-Architectural decisions | "show last commit message"
+DevPrompt specs | «git status»
+Plans (multi-step) | «run pytest»
+Acceptance criteria | «commit current state»
+Numeric constraints | «push к origin»
+Architectural decisions | «show last commit message»
 Pre-registered protocol | Trivial single-line edits
 
 ### 4. Architect explicit assumptions section
 
-Каждый architect-issued command/spec должен содержать **"Assumptions (verify перед execute):"** section.
+Каждый architect-issued command/spec должен содержать **«Assumptions (verify перед execute):»** section.
 
 Format:
 ```
@@ -165,9 +178,22 @@ Assumptions:
 
 Если any assumption verifies as false → STOP, escalate, не guess.
 
-**Common antipattern caught:** architect issues "run benchmark" assuming runner exists; reality — runner needs к be built. Verification catches.
+**Common antipattern caught:** architect issues «run benchmark» assuming runner exists; реальность — runner needs к be built. Verification catches.
 
 ### 5. Periodic state refresh
+
+**5.1. Session-start refresh (каждая новая сессия)**
+
+В начале каждой новой сессии Claude Code обязан, ПЕРЕД любой работой:
+1. Прочитать `DNA.md` **полностью** (не предполагать, что помнит из прошлой сессии)
+2. Прочитать `ASSUMPTIONS.md` со статусами
+3. Прочитать последний `PHASE_REPORT.md`
+4. Запустить smoke-test / прочитать состояние — убедиться, что код работоспособен
+5. Только потом начинать задачу
+
+**Зачем:** дрейф контекста — модель «помнит» что-то из training или прошлой сессии, но это не текущее состояние repo. Самая частая ошибка координации между сессиями. State refresh в начале дешевле, чем работа на основе stale model.
+
+**5.2. Deep refresh (каждые 5 sessions)**
 
 Каждые 5 Claude Code sessions (или по architect request), Claude Code dumps:
 - `git log --oneline -30`
@@ -175,17 +201,22 @@ Assumptions:
 - List of key types/classes (grep for `class ` / `dataclass`)
 - Current dependencies summary
 
-Output saved к `docs/state_refresh_YYYYMMDD.md`. Architect reads перед next major decision.
+Output saved к `docs/state_refresh_YYYYMMDD.md`. Architect reads перед next major decision. Counter увеличивается в `docs/Decisions.md`.
 
-Counter увеличивается в `docs/Decisions.md` — track session count since last refresh.
+**Зачем:** architect mental model decays. Refresh — cheap (~5 min CC time) vs cost of architect errors based on stale state.
 
-**Зачем:** architect mental model decays. Refresh — cheap (~5 min Claude Code time) vs cost of architect errors based on stale state.
+**5.3. Critical rules placement (anti-tunnel-vision)**
+
+Ключевые DNA-инварианты в `CLAUDE.md` размещаются:
+- В **начале** документа (primacy)
+- Дублируются в **конце** (recency)
+- Периодически повторяются в длинных DevPrompt'ах
+
+Правило в середине длинного контекста статистически игнорируется — это attention architecture, не лень агента. Эмпирически: перемещение инструкции из середины в начало меняет поведение.
 
 ### 6. Error budget acknowledgment
 
-Architect errors expected at ~10% rate из-за LLM structural limits. **Это accepted operational mode, не failure mode.**
-
-Когда Claude Code identifies architect assumption gap — **НЕ defer к "architect knows better".** Escalate immediately per protocol. Claude Code — peer reviewer, не subordinate.
+Когда Claude Code identifies architect assumption gap — **НЕ defer к «architect knows better».** Escalate immediately per protocol. Claude Code — peer reviewer, не subordinate.
 
 **Communication norm:** Claude Code не должен apologize за catching architect errors. Architect не должен быть defensive. Errors expected, defenses designed для catch.
 
@@ -211,6 +242,14 @@ Probe deliverable: empirical evidence (concrete URL/SHA-256/output paste, не s
 
 Probe time-boxed (3-5 hours typical). Если probe surfaces blocker → STOP, escalate, не workaround.
 
+Probe обязан:
+- Тестировать ОДНУ гипотезу за раз
+- Иметь чёткий критерий PASS / FAIL / UNCERTAIN
+- Занимать <10% времени основной задачи
+- Явно документировать, что НЕ проверено (out of scope)
+
+Все PASS → строить. Хоть один FAIL → менять архитектуру. UNCERTAIN → расширять probe, не игнорировать.
+
 **Зачем:** architect numerical constraints без empirical pre-flight verification — most common error source. Probe catches до plan finalization.
 
 ### 9. Pre-registration immutability
@@ -218,7 +257,7 @@ Probe time-boxed (3-5 hours typical). Если probe surfaces blocker → STOP, 
 Pre-registered acceptance criteria committed к git BEFORE benchmark/experiment execution. Mid-run modifications forbidden (data dredging risk).
 
 Revisions allowed но require:
-1. Formal Decisions.md entry с rationale
+1. Formal `Decisions.md` entry с rationale
 2. Original criteria preserved в git history (immutable)
 3. Revised criteria new commit
 4. Architect explicit sign-off
@@ -228,6 +267,179 @@ Revisions allowed но require:
 Перед major implementation work — Claude Code **proposes design** (modules, types, key functions). Architect approves **direction**, не details. Implementation proceeds autonomously after direction approval.
 
 Tradeoff escalations при substantive decisions (architect call needed) — Claude Code stops, asks. Не guess.
+
+### 11. No self-certification of completion
+
+**Claude Code НЕ имеет права объявить задачу выполненной.** «Done» устанавливается только внешней проверкой.
+
+Формулировки, которые **игнорируются** как статистическое продолжение по формату:
+- «Task complete» / «All done» / «Ready for production»
+- «All tests pass» (без видимого stdout с assertions)
+- «Implementation finished» / «Everything works»
+
+Завершение фазы устанавливается ТОЛЬКО:
+- Тест прошёл — виден raw stdout с конкретными assertions
+- Артефакт существует — виден `ls` + размер + содержимое (для бинарных — hash)
+- Architect подтвердил после raw artifact review (§13)
+
+**Инверсия дефолта:** не «агент говорит готово → архитектор проверяет», а «агент не может сказать готово → готовность устанавливается извне». Завершение фазы = архитектор закрыл, не агент отчитался.
+
+**Зачем:** агент генерирует отчёт «всё выполнено» как вероятное продолжение по формату, а не по факту. Он не просто ошибается — часто не распознаёт, что ошибся. Самоотчёт структурно ненадёжен.
+
+### 12. Confidence markers в отчётах
+
+Claude Code обязан явно маркировать confidence каждого нетривиального утверждения:
+
+- `[VERIFIED]` — проверено программно, есть log/output подтверждающий
+- `[TESTED]` — есть unit-test, прошёл, assertions видны
+- `[INSPECTED]` — прочитан код/документация вручную, выглядит корректно
+- `[ASSUMED]` — стандартное поведение библиотеки, эмпирически не проверял
+- `[GUESSED]` — на основе training data, может быть устаревшим
+
+Architect может потребовать повысить уровень любого `[ASSUMED]`/`[GUESSED]` до `[VERIFIED]` через явный тест перед approval.
+
+**Trust calibration на стороне architect:**
+
+| Утверждение | Доверие | Действие |
+|---|---|---|
+| «Создал файл X» + `ls` показывает | Высокое | Принять |
+| «Запустил тест» + виден stdout/stderr | Высокое | Принять |
+| «Архитектура чистая» / «edge cases покрыты» | Среднее | Читать код, спросить «какие именно» |
+| «Production ready» / «все тесты прошли» | Низкое | Проверять: какие тесты, какие assertions |
+| «Бенчмарк показывает X» | Низкое | На каких данных, воспроизводимо? |
+| API method / версия пакета / имя файла | Часто галлюцинация | Verify через docs/`ls` перед использованием |
+
+**Зачем:** чем убедительнее модель, тем правдоподобнее звучит неверное. Внутри модели нет механизма проверки фактов; подтверждение статистически вероятнее признания провала.
+
+### 13. Raw artifact review (architect-side)
+
+Architect **не доверяет** финальному summary Claude Code. Перед approval architect требует и читает **сырые артефакты**, не пересказ:
+
+- Raw output логов (stdout, stderr, exit codes) — не «тесты прошли», а сам вывод
+- Реальный сгенерированный файл (.xls/.json/.py) — не «файл создан корректно»
+- Полный diff — не summary diff
+- Размеры файлов и hash для бинарных артефактов
+- Конкретные команды для самостоятельной верификации architect'ом
+
+**Антипаттерн (sat-revisit-tool):** `Start-Process -Wait` + `ExitCode=0` показывает только, что приложение не упало в первые 3 секунды. Это почти ничего. Нужен интерактивный запуск со скриншотом + проверка на реальных данных.
+
+**Правило:** «X работает» от агента — гипотеза для проверки, не факт для принятия.
+
+### 14. Numeric/temporal hard rule
+
+**ЗАПРЕЩЕНО** полагаться на reasoning модели для:
+- Арифметики любой сложности — только через code execution
+- Дат и периодов — текущая дата задаётся явно, проверяется инструментом
+- Сравнения числовых значений из разных источников
+- Конвертации единиц измерения — только через код
+
+Любое числовое утверждение в отчёте маркируется `[VERIFIED]` через запуск кода, не `[ASSUMED]` из reasoning.
+
+**14.1. Verification anchors (per-project)**
+
+`ANCHORS.md` — короткий (10–20 строк) список известно-верных критических значений. **Не источник для кода** — tripwire для самопроверки. Агент сверяет вывод с якорями перед отчётом (§11); нарушение → `[FAILED ANCHOR]` в отчёте, не молчаливое игнорирование.
+
+Две секции:
+- **Структурные инварианты** — правила, применимые ко всем объектам (`lambda_max > lambda_min`; `mass_kg > 0`, единственное значение; физический диапазон величины)
+- **Reference-канарейки** — конкретные известные значения. Если «поплыли» — сломан pipeline, не данные
+
+Структурные инварианты проверяются `assert`'ами в коде. Канарейки — сверкой при обработке соответствующего объекта.
+
+**Зачем:** модель оперирует числами как текстом. Может смешать данные двух периодов, не заметить расхождение источников, пропустить отрицательную ширину.
+
+### 15. Communication protocol (runtime observability)
+
+Два провала симметричны: агент нарративит каждое действие (шум, архитектор перестаёт читать) или исчезает на 40 минут и возвращается с расхождением, которое стоило поймать на пятой минуте.
+
+Правило — не список поводов, а **решающая функция**, выводимая из асимметрии стоимостей: сравнивается стоимость того, что архитектор узнает об этом **позже**, со стоимостью прерывания **сейчас**.
+
+Стоимость позднего знания определяется двумя осями:
+
+- **Обратимость** — можно ли откатить последствия
+- **Расхождение** — отличается ли фактическая траектория от зафиксированной в DevPrompt
+
+|  | По плану DevPrompt | Расхождение с планом |
+|---|---|---|
+| **Обратимо** | SILENCE | NOTE |
+| **Необратимо, в мандате** | NOTE **перед** действием | BLOCK |
+| **Необратимо, вне мандата** | BLOCK | BLOCK |
+
+Необратимое + расходящееся → всегда BLOCK: стоимость позднего знания здесь неограничена и всегда доминирует над стоимостью прерывания. Обратимое + идущее по плану → всегда молчание. Остальное выводится, а не запоминается.
+
+**Три сигнала, строгие форматы:**
+
+**BLOCK** — остановиться и ждать. Формат: что произошло, какое решение требуется, какие варианты видны, что рекомендую. Не продолжать работу до ответа.
+
+**NOTE** — ровно одна строка, работа продолжается без ожидания. Если нужен абзац — это BLOCK (требует решения) или материал для Phase-end report.
+
+**SILENCE** — ничего. Чтение файлов, поиск, навигация, шаги плана, идущие как запланировано, внутренние итерации внутри шага, отладка, завершившаяся успехом.
+
+**15.1. Heartbeat (бюджет тишины)**
+
+Максимум N tool-операций или M минут без любого сигнала. При исчерпании — одна строка: где сейчас, сколько осталось. Не отчёт, одна строка.
+
+**Зачем:** BLOCK/NOTE/SILENCE оставляют дыру — длинный участок законно-молчаливой работы неотличим от зависшего агента. Heartbeat различает «работает молча и правильно» и «потерялся». Это требование наблюдаемости, не коммуникации.
+
+**15.2. Signal budget (сигнал — исчерпаемый ресурс)**
+
+Ориентир на фазу: **≤1 BLOCK, ≤3–5 NOTE**.
+
+Превышение бюджета — сигнал не об агенте, а о **качестве DevPrompt**: мандат был недоспецифицирован, решения не приняты заранее. Архитектор чинит DevPrompt, не агента.
+
+**Почему это не формальность.** BLOCK работает, только пока архитектор его читает. Каждое лишнее прерывание обучает одобрять рефлекторно; после нескольких тривиальных BLOCK настоящий BLOCK проходит непрочитанным. Over-asking — не шум, а **обезоруживание механизма**. То же с NOTE: частые малоценные заметки не читаются, и важная теряется.
+
+Это тот же принцип, что негативные тесты в §16: механизм, срабатывающий слишком часто, столь же неисправен, как не срабатывающий вовсе.
+
+### 16. Regression suite для skill (design-time verification)
+
+Skill без тестов — набор убеждений о том, что работает. Skill с тестами — верифицируемая спецификация.
+
+**16.1. Пять принципов**
+
+**Полнота по построению.** Каждый анти-паттерн из списка ниже имеет минимум один тест; ID теста ссылается на букву паттерна. Suite полон по структуре, не по вдохновению. Добавлен анти-паттерн без теста → изменение неполное.
+
+**Поведенческие ассерты, не сравнение текста.** Тест проверяет наблюдаемое действие: вызван ли инструмент перед утверждением; промаркировано ли `[ASSUMED]`; остановился ли вместо самоотчёта; сработал ли `[FAILED ANCHOR]`. Ассерт «ответ похож на эталонный» бесполезен — вывод стохастичен, а сходство неизмеримо.
+
+**Порог k из n.** Один прогон ничего не доказывает. Тест засчитан при 3 из 3 для критичных правил (§11, §14), 2 из 3 для остальных. Это различие между тестом и анекдотом.
+
+**Негативные тесты обязательны.** Проверяют, что правило **не** срабатывает там, где не должно. Без них suite поощряет гиперсрабатывание: skill, который блокирует всё подряд, проходит все позитивные тесты. Минимум один негативный на каждое правило, способное сработать ложно (§11, §15 BLOCK, §14 anchors).
+
+**Тест из реального провала, до формулирования правила.** Лучший тест воспроизводит фактическую ситуацию, где паттерн проявился, и пишется **до** того, как сформулировано правило. Тест, написанный после правила, склонен подтверждать правило, а не проверять поведение.
+
+**16.2. Формат теста**
+
+```
+ID: T-<буква анти-паттерна>-<номер>
+Целевой анти-паттерн: <буква>
+Тип: позитивный | негативный
+Вход: <точный DevPrompt или ситуация, воспроизводимо>
+Ассерт: <наблюдаемое поведение, PASS/FAIL без интерпретации>
+Порог: <k из n>
+Происхождение: <реальный провал в проекте X, сессия N> | синтетический
+```
+
+**16.3. Два уровня**
+
+- **Smoke** (3–5 тестов, ~10 мин, Sonnet): после любого изменения skill
+- **Full** (все анти-паттерны + негативные, ~40 мин): перед фиксацией версии skill, при смене модели, после добавления анти-паттерна
+
+**16.4. Baseline**
+
+Результаты фиксируются в `docs/skill_baseline.md` с **двумя версиями: skill и модели**. Поведение скилла есть функция от пары (skill, model) — при смене модели baseline недействителен целиком и перепрогоняется. Регрессия детектируется только относительно baseline; «стало лучше» без baseline — субъективное впечатление.
+
+**16.5. Триаж провала**
+
+Три причины, три реакции:
+
+1. **Дефект skill** — правило сформулировано неоднозначно или стоит в игнорируемой позиции (§5.3) → чинить skill
+2. **Смена модели** — поведение изменилось с обновлением → перекалибровать правило под новую модель, зафиксировать в baseline
+3. **Дефект теста** — ассерт проверяет не то, что заявлено → чинить тест
+
+**Не чинить skill, не определив причину.** Самая частая ошибка — подгонять skill под плохой тест.
+
+**16.6. Стоимость**
+
+Full suite на Opus с высоким effort — заметные деньги. Smoke на Sonnet достаточен для большинства изменений. Full — только по триггерам из 16.3.
 
 ## Когда применять
 
@@ -241,6 +453,7 @@ Architect's checklist перед finalizing command:
 - [ ] Soft constraints listed (preferences, можно override)
 - [ ] Assumptions section explicit (что предполагаю существующим)
 - [ ] Decision points для escalation specified
+- [ ] Signal budget указан (§15.2)
 - [ ] Implementation details **NOT** prescribed (CC decides)
 
 Если checklist failed — переписать command перед issuing.
@@ -254,14 +467,13 @@ DevPrompt обязан содержать:
 - Runtime invariants (не metadata-only validation)
 - Aggregations report group counts + estimand
 - LOC estimates calibrated против analogous existing modules
-
-См. memory rule #7 для checklist.
+- Tool-budget на фазу (при исчерпании — остановка + report, не продолжение)
 
 ### При обнаружении систематических errors
 
-Если architect делает 3+ ошибки подряд того же типа — записать **anti-pattern в Decisions.md** + memory.
+Если architect делает 3+ ошибки подряд того же типа — записать **anti-pattern в Decisions.md** + memory. **В том же изменении добавить тест** (§16.1, полнота по построению).
 
-Pattern recognition важнее tactical fix. Anti-pattern recorded → future commands самопроверяются.
+Pattern recognition важнее tactical fix.
 
 ### При phase transitions
 
@@ -271,88 +483,147 @@ Pattern recognition важнее tactical fix. Anti-pattern recorded → future 
 2. State refresh commit перед DevPrompt_NN.0 probe
 3. Memory rules updated с new patterns observed
 
+**Обязательный Phase-end report (Claude Code → architect):**
+
+В конце каждой фазы Claude Code создаёт `PHASE_N_REPORT.md`:
+
+```markdown
+### Сделано
+- Артефакты с путями и размерами
+- Проверки, которые прошли (+ команды для воспроизведения)
+- Confidence marker на каждом значимом утверждении
+
+### Не сделано (явно)
+- Что было в плане, но не реализовано — с причиной
+- Что отложено на следующую фазу
+
+### Tool-budget
+- Использовано: X / Y операций
+
+### Signal budget
+- BLOCK: N, NOTE: M (превышение → DevPrompt был недоспецифицирован)
+
+### Открытые вопросы
+- Что нельзя решить сейчас (нужна информация от architect)
+- Что требует проверки на машине architect
+
+### Что НЕ проверено
+- Явный список untested assumptions
+- Тесты, невозможные в текущей среде
+
+### Решения без согласования
+- Выборы, не упомянутые в DevPrompt + обоснование каждого
+```
+
+Architect читает report ПЕРЕД тем, как смотреть код. Разделы «Что НЕ проверено» и «Решения без согласования» — самые важные: там прячутся ошибки.
+
 ## Common anti-patterns recorded
 
 ### A. Numerical constraints без empirical verification
-**Симптом:** architect specifies "X hours" / "Y meters" / "Z LOC" из памяти, оказывается wrong.
+**Симптом:** architect specifies «X hours» / «Y meters» / «Z LOC» из памяти, оказывается wrong.
 **Защита:** каждая numeric constant требует direct citation OR empirical probe.
-**Пример (sat-revisit-tool):** "6h calibration per Mao 2023" — на самом деле Mao 2023 не specifies 6h floor. Wasted Session 4 на 2h cal benchmark с 1.1% convergence.
+**Пример (sat-revisit-tool):** «6h calibration per Mao 2023» — Mao 2023 не specifies 6h floor. Wasted Session 4.
 
 ### B. Type widening (Union) instead of isolation (Protocol/Generic)
 **Симптом:** new phase types added через `OldType | NewType` Union, contaminating prior phase code.
 **Защита:** Protocol pattern или Generic с phase boundaries explicit.
-**Пример:** Phase 2 GRACE-FO config added через `SentinelMission | GRACEFOMission` widening. GPT review flagged как Phase 1 type contamination.
 
-### C. "Locked module" claim без downstream consumer audit
-**Симптом:** architect declares module locked, но downstream consumers нуждаются breaking changes.
-**Защита:** перед "locked" declaration — explicitly enumerate downstream consumers и verify changes compatible.
-**Пример:** DevPrompt_07 declared `numerical.py` locked while DevPrompt_07 simultaneously required `forces.py` updates breaking `numerical.py` calls.
+### C. «Locked module» claim без downstream consumer audit
+**Симптом:** architect declares module locked, но downstream consumers нуждаются в breaking changes.
+**Защита:** перед «locked» declaration — enumerate downstream consumers, verify compatibility.
 
 ### D. Aggregation без n_groups + estimand reporting
 **Симптом:** statistical aggregation reports single number без cluster/group counts.
-**Защита:** каждое aggregation reports both n_observations AND n_groups (clusters), explicit estimand documentation.
-**Пример:** cluster bootstrap не reported n_clusters, только n_arcs — overstates statistical power.
+**Защита:** каждое aggregation reports n_observations AND n_groups, explicit estimand.
 
 ### E. Commands assuming infrastructure existence
-**Симптом:** architect issues "run X" assuming runner exists; реальность — нужно build first.
-**Защита:** каждая command — explicit assumptions section listing infrastructure prerequisites.
-**Пример:** Session 6.1 launch command assumed VLEO production runner existed. Реальность — Phase 1 runner был для S-3A POE, Phase 2 нужен SP3-driven adapter (~250-400 LOC build).
+**Симптом:** architect issues «run X» assuming runner exists; реальность — нужно build first.
+**Защита:** explicit assumptions section listing infrastructure prerequisites.
 
 ### F. LOC estimates from training data
-**Симптом:** architect estimates "~150 LOC" для new module, реальность 250-400.
-**Защита:** Claude Code calibrates estimate против analogous existing module (read git ls-files + count LOC of comparable).
+**Симптом:** architect estimates «~150 LOC», реальность 250–400.
+**Защита:** CC calibrates estimate против analogous existing module.
+
+### G. Critical rule в середине длинного контекста
+**Симптом:** инвариант прописан в середине `CLAUDE.md` / длинного DevPrompt, агент игнорирует, хотя «знает».
+**Защита:** §5.3 — ключевые правила в начале + дублируются в конце. Длинный моноблок → иерархия со ссылками на файлы.
+
+### H. Самоотчёт о завершении принят как факт
+**Симптом:** агент пишет «готово, тесты прошли», architect принимает без raw review; позже обнаруживается, что тесты не запускались.
+**Защита:** §11 + §13.
+**Пример (sat-revisit-tool):** `ExitCode=0` принят как «приложение работает» — проверяло только, что не упало за 3 секунды.
+
+### I. Числовое расхождение не замечено reasoning'ом
+**Симптом:** агент агрегирует значения из источников, не замечает противоречий.
+**Защита:** §14 + anchors. Числовые сравнения только через код.
+
+### J. Over-asking (BLOCK на то, что в мандате)
+**Симптом:** агент запрашивает разрешение на действия, явно разрешённые DevPrompt.
+**Защита:** §15 решающая функция + signal budget.
+**Почему серьёзно:** обучает архитектора одобрять рефлекторно, обезоруживает BLOCK для настоящих случаев.
+
+### K. Silent divergence (архитектурное решение без сигнала)
+**Симптом:** агент принял решение вне мандата и сообщил о нём только в финальном отчёте.
+**Защита:** §15 — необратимое вне мандата → BLOCK; раздел «Решения без согласования» в Phase-end report.
+
+### L. Правило изменено без теста
+**Симптом:** skill дополнен новым правилом или анти-паттерном, тест не добавлен; работает ли правило — неизвестно.
+**Защита:** §16.1 полнота по построению. Изменение skill без теста считается незавершённым.
 
 ## Communication norms
 
 ### Architect side
 
-- Не writing implementation details (что-то менее specific чем "module Foo handles Bar concern")
-- Not apologizing для catching own errors via verification protocol — protocol working as designed
-- Document errors recorded в Decisions.md для anti-pattern accumulation
-- Honest acknowledgment когда no clear answer ("I'm guessing here, нужна probe")
+- Не writing implementation details
+- Not apologizing за catching own errors via verification protocol — protocol working as designed
+- Document errors в `Decisions.md` для anti-pattern accumulation
+- Honest acknowledgment когда нет ответа («I'm guessing here, нужна probe»)
+- Читать raw артефакты, не summary (§13)
 
 ### Claude Code side
 
 - Verification reports brief (no extensive prose unless flagged issues)
 - Implementation autonomy после direction approval (don't ask permission for naming)
 - Escalate при substantive decisions, не tactical
-- Не "architect knows better" deference — peer review stance
+- Не «architect knows better» deference — peer review stance
+- Не объявлять завершение самостоятельно (§11)
+- Маркировать confidence (§12), соблюдать signal budget (§15.2)
 
 ## Reusable template
 
-CLAUDE_TEMPLATE.md содержит §16 (workflow protocol) ready к copy в новые проекты. Adapt §1-15 project-specific sections, keep §16 intact.
-
-## Memory rules относящиеся
-
-Memory items #11 (universal architect/CC workflow) и #12 (LLM error budget defenses) — cross-project rules применимые автоматически.
+`CLAUDE_TEMPLATE.md` содержит workflow protocol ready к copy в новые проекты. Adapt project-specific sections, keep protocol section intact.
 
 ## Применение в существующих проектах
 
 **Новый проект:**
-1. Create DNA via project-dna skill
-2. Create CLAUDE.md from CLAUDE_TEMPLATE.md (§16 protocol)
-3. First DevPrompt_00.0 probe stage перед main implementation
-4. Architect commands в goal-oriented format с assumptions section
-5. Claude Code verification protocol active
+1. Create DNA via `project-dna` skill
+2. Create `CLAUDE.md` from template (protocol section)
+3. Create `ANCHORS.md` (§14.1) если проект data-heavy
+4. First DevPrompt_00.0 probe stage перед main implementation
+5. Architect commands в goal-oriented format с assumptions section
+6. CC verification protocol active
 
 **Existing project (retrofit):**
-1. Audit existing CLAUDE.md — добавить §16 sections если missing
-2. Записать observed anti-patterns в Decisions.md
+1. Audit existing `CLAUDE.md` — добавить protocol sections если missing
+2. Записать observed anti-patterns в `Decisions.md`
 3. Active immediately — applies к next architect command
 
 ## Когда НЕ применять
 
 - **Solo coding** (без architect/CC pair) — overkill protocol
-- **Throwaway prototypes** (не projects) — friction > benefit
-- **Routine maintenance** (single-line fixes, dependency bumps) — не нужны verification protocols
-- **Project-dna creation phase** — workflow protocol активируется AFTER DNA creation, не во время
-- **Crisis fixes** (production down, hot fix) — speed > protocol для emergency context, document после
+- **Throwaway prototypes** — friction > benefit
+- **Routine maintenance** (single-line fixes, dependency bumps) — verification protocols не нужны
+- **Project-dna creation phase** — protocol активируется AFTER DNA creation
+- **Crisis fixes** (production down) — speed > protocol, document после
 
 ## Эволюция этого скилла
 
-При observation новых anti-patterns в проектах — update этот skill:
-1. Add anti-pattern в section "Common anti-patterns recorded"
-2. Update memory rules если universal applicability
-3. Update CLAUDE_TEMPLATE.md если pattern needs CLAUDE.md enforcement
+При observation новых anti-patterns:
+1. Написать тест, воспроизводящий провал (**до** формулирования правила, §16.1)
+2. Add anti-pattern в «Common anti-patterns recorded»
+3. Add правило в соответствующую секцию
+4. Прогнать full suite, обновить baseline
+5. Update memory rules если universal applicability
+6. Update `CLAUDE_TEMPLATE.md` если pattern needs enforcement
 
-Skill кодифицирует accumulated experience — растет с каждым проектом.
+Skill кодифицирует accumulated experience — растёт с каждым проектом. При росте свыше ~600 строк — выносить детальные протоколы в reference-файлы, оставляя в `SKILL.md` индекс и ядро (progressive disclosure).
