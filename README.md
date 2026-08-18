@@ -162,6 +162,29 @@ Most DNA documents record only the positive side. That's a mistake: without expl
 
 Axiology is **resolved dilemmas**, not a list of values. An agent can't apply a list of good things; it can only apply a rule of choice: *"when A and B are incompatible → choose A, because […]"*.
 
+## Enforcement: rule versus intention
+
+Every rule in these skills carries an honest rung on a six-step ladder, from
+"text in the skill" (an intention) up to "architectural impossibility". The rung
+is set by how external the check is — writing FORBIDDEN in the text does not
+raise it. A specification begins at rung 5, where something outside the model
+fails when the rule is broken.
+
+Three dependency-free lints do that failing:
+
+| Script | Checks |
+|---|---|
+| `dna_lint.py` | DNA structure: technologies, length, violation indicators, negative and numeric invariants |
+| `report_lint.py` | Phase-end report: required sections, banned self-certification, confidence markers |
+| `signal_lint.py` | Signal log: BLOCK precedes the halt, counters match the log rather than retelling it |
+
+Behaviour is measured, not asserted: [REGRESSION_SUITE.md](skills/architect-cc-workflow/REGRESSION_SUITE.md)
+holds behavioural tests and a baseline with real k/n numbers, and records what
+the numbers do **not** prove — one test turned out to measure the base model
+rather than the protocol.
+
+Details: **[Enforcement EN](docs/enforcement-en.md)** | **[Enforcement RU](docs/enforcement-ru.md)**
+
 ## Installation
 
 ### Claude Code (plugin)
@@ -192,6 +215,7 @@ Copy `skills/project-dna/SKILL.md` to your agent's skills directory. The skill f
 | Three-Skill Ecosystem | [ecosystem-en.md](docs/ecosystem-en.md) | [ecosystem-ru.md](docs/ecosystem-ru.md) |
 | Six Modes (detailed) | [modes-en.md](docs/modes-en.md) | [modes-ru.md](docs/modes-ru.md) |
 | Full Methodology | [methodology-en.md](references/methodology-en.md) | [methodology-ru.md](references/methodology-ru.md) |
+| Enforcement (ladder, lints, baseline) | [enforcement-en.md](docs/enforcement-en.md) | [enforcement-ru.md](docs/enforcement-ru.md) |
 
 **Examples** — a complete worked set from one project:
 
@@ -375,6 +399,29 @@ graph TB
 
 Аксиология — это **разрешённые дилеммы**, а не список ценностей. Агент не может применить перечень хороших вещей, он применяет правило выбора: *«когда нельзя одновременно A и B → выбираем A, потому что […]»*.
 
+## Enforcement: правило против намерения
+
+У каждого правила в этих скиллах есть честная ступень на шестибалльной шкале —
+от «текст в скилле» (намерение) до «архитектурная невозможность». Ступень
+определяется тем, насколько проверка внешняя: слово «ЗАПРЕЩЕНО» в тексте её не
+поднимает. Спецификация начинается с пятой, где при нарушении падает что-то вне
+модели.
+
+Падают три линта без зависимостей:
+
+| Скрипт | Проверяет |
+|---|---|
+| `dna_lint.py` | структуру DNA: технологии, объём, признаки нарушения, негативные и числовые инварианты |
+| `report_lint.py` | Phase-end report: обязательные секции, запрет самосертификации, confidence markers |
+| `signal_lint.py` | журнал сигналов: BLOCK раньше остановки, счётчики совпадают с журналом, а не пересказывают его |
+
+Поведение измеряется, а не декларируется: в
+[REGRESSION_SUITE.md](skills/architect-cc-workflow/REGRESSION_SUITE.md) лежат
+поведенческие тесты и baseline с настоящими k/n — вместе с тем, чего эти числа
+**не** доказывают: один тест оказался измеряющим базовую модель, а не протокол.
+
+Подробнее: **[Enforcement RU](docs/enforcement-ru.md)** | **[Enforcement EN](docs/enforcement-en.md)**
+
 ## Установка
 
 ```bash
@@ -396,6 +443,7 @@ cp -r skills/project-dna .claude/skills/
 | Экосистема трёх скиллов | [ecosystem-ru.md](docs/ecosystem-ru.md) | [ecosystem-en.md](docs/ecosystem-en.md) |
 | Шесть режимов (подробно) | [modes-ru.md](docs/modes-ru.md) | [modes-en.md](docs/modes-en.md) |
 | Полная методология | [methodology-ru.md](references/methodology-ru.md) | [methodology-en.md](references/methodology-en.md) |
+| Enforcement (шкала, линты, baseline) | [enforcement-ru.md](docs/enforcement-ru.md) | [enforcement-en.md](docs/enforcement-en.md) |
 
 **Примеры** — полный связный набор из одного проекта:
 
