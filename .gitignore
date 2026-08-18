@@ -6,3 +6,9 @@ Thumbs.db
 
 # собираемые архивы — воспроизводятся scripts/build_skill_archives.py
 dist/
+
+# кеши линтеров, если их занесло в каталоги скиллов
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+__pycache__/

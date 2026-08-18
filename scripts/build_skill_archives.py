@@ -21,7 +21,7 @@ if hasattr(sys.stdout, "reconfigure"):
 REPO = Path(__file__).resolve().parent.parent
 SRC = REPO / "skills"
 SKILLS = ["architect-cc-workflow", "project-dna", "research-with-ai"]
-SKIP = {"__pycache__", ".DS_Store"}
+SKIP = {"__pycache__", ".DS_Store", ".mypy_cache", ".ruff_cache", ".pytest_cache"}
 
 README = """# DNA/RNA skills — комплект для установки
 
