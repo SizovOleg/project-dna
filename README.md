@@ -214,7 +214,7 @@ Copy `skills/project-dna/SKILL.md` to your agent's skills directory. The skill f
 | Quick Start | [quickstart-en.md](docs/quickstart-en.md) | [quickstart-ru.md](docs/quickstart-ru.md) |
 | Three-Skill Ecosystem | [ecosystem-en.md](docs/ecosystem-en.md) | [ecosystem-ru.md](docs/ecosystem-ru.md) |
 | Six Modes (detailed) | [modes-en.md](docs/modes-en.md) | [modes-ru.md](docs/modes-ru.md) |
-| Full Methodology | [methodology-en.md](references/methodology-en.md) | [methodology-ru.md](references/methodology-ru.md) |
+| Full Methodology | [methodology-en.md](skills/project-dna/references/methodology-en.md) | [methodology-ru.md](skills/project-dna/references/methodology-ru.md) |
 | Enforcement (ladder, lints, baseline) | [enforcement-en.md](docs/enforcement-en.md) | [enforcement-ru.md](docs/enforcement-ru.md) |
 
 **Examples** — a complete worked set from one project:
@@ -442,7 +442,7 @@ cp -r skills/project-dna .claude/skills/
 | Быстрый старт | [quickstart-ru.md](docs/quickstart-ru.md) | [quickstart-en.md](docs/quickstart-en.md) |
 | Экосистема трёх скиллов | [ecosystem-ru.md](docs/ecosystem-ru.md) | [ecosystem-en.md](docs/ecosystem-en.md) |
 | Шесть режимов (подробно) | [modes-ru.md](docs/modes-ru.md) | [modes-en.md](docs/modes-en.md) |
-| Полная методология | [methodology-ru.md](references/methodology-ru.md) | [methodology-en.md](references/methodology-en.md) |
+| Полная методология | [methodology-ru.md](skills/project-dna/references/methodology-ru.md) | [methodology-en.md](skills/project-dna/references/methodology-en.md) |
 | Enforcement (шкала, линты, baseline) | [enforcement-ru.md](docs/enforcement-ru.md) | [enforcement-en.md](docs/enforcement-en.md) |
 
 **Примеры** — полный связный набор из одного проекта:

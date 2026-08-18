@@ -508,3 +508,16 @@ DNA готов, нужно создать RNA / Harness для конкретн�
 - **`prd-coauthoring`** — создание Requirements (выводятся из DNA)
 - **`pipeline-development`** — реализация (TechnicalDesign + DevPrompts, совместимые с DNA)
 - **`peer-review`** — ревью на соответствие DNA как критерий качества
+
+## Полная методология
+
+Философское основание, биологическая метафора, жизненный цикл, роли,
+антипаттерны и сравнение с ADR / Harness Engineering / Spec-Driven
+Development / CodeSpeak / DDD:
+
+- [`references/methodology-ru.md`](references/methodology-ru.md)
+- [`references/methodology-en.md`](references/methodology-en.md)
+
+Методология едет вместе со скиллом: при установке в `~/.claude/skills/` или
+заливке в аккаунт файлы оказываются рядом с `SKILL.md`, а не остаются в
+репозитории.
