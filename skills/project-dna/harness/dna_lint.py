@@ -43,6 +43,9 @@ WORD_LIMIT = 2600  # ~5 страниц
 
 # DNA пишется на языке доменного эксперта — линт не должен требовать русского.
 MARKER_VIOLATION = ("признак нарушения", "violation indicator")
+# Плейсхолдер содержит слова маркера, но признаком не является:
+# незаполненное поле не должно засчитываться как заполненное.
+PLACEHOLDER = ("требует владельца", "requires owner", "[todo", "tbd", "уточнить")
 MARKER_DILEMMA = ("когда нельзя одновременно", "when we cannot both", "когда нельзя одновременнo")
 
 
@@ -97,6 +100,19 @@ def main(path: str) -> int:
             low = sub.lower()
             if not any(k in low for k in MARKER_VIOLATION):
                 fails.append(f"инвариант «{title}»: нет «Признак нарушения:» — лозунг, не инвариант")
+            else:
+                # строка(и) с маркером — проверяем, что там не заглушка
+                marked = [
+                    ln for ln in sub.splitlines()
+                    if any(k in ln.lower() for k in MARKER_VIOLATION)
+                ]
+                if marked and all(
+                    any(ph in ln.lower() for ph in PLACEHOLDER) for ln in marked
+                ):
+                    fails.append(
+                        f"инвариант «{title}»: признак не заполнен (заглушка) — "
+                        "ждёт владельца, засчитывать нельзя"
+                    )
 
     # 4. Негативные инварианты
     sec6 = section(text, 6)
