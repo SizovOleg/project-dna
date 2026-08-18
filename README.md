@@ -63,8 +63,21 @@ graph LR
 | Skill | Domain | Key Question |
 |-------|--------|-------------|
 | **project-dna** | Invariants | *What can never be violated and why?* |
-| **architect-cc-workflow** | Execution discipline | *How to interact with AI agents without errors?* |
+| **architect-cc-workflow** | Execution discipline | *How do both sides catch each other's errors?* |
 | **research-with-ai** | Epistemics | *How do we know this is true?* |
+
+The three skills fire in sequence and pair up mechanism-for-mechanism:
+
+```
+research-with-ai (Mode 8)  →  project-dna  →  architect-cc-workflow
+  domain scouting             invariants       execution
+```
+
+| project-dna | ↔ | architect-cc-workflow |
+|---|---|---|
+| Violation indicator | ↔ | Regression suite (§16) |
+| Pre-action protocol | ↔ | Phase-end report |
+| Numeric invariants (§7) | ↔ | Verification anchors (§14.1) |
 
 ## Quick Start
 
@@ -74,7 +87,7 @@ graph LR
 
 Full step-by-step guide: **[Quickstart EN](docs/quickstart-en.md)** | **[Quickstart RU](docs/quickstart-ru.md)**
 
-## Five Modes
+## Six Modes
 
 | Mode | Trigger | What it does |
 |------|---------|-------------|
@@ -83,29 +96,71 @@ Full step-by-step guide: **[Quickstart EN](docs/quickstart-en.md)** | **[Quickst
 | **Extract DNA** | "extract DNA", "what are our invariants" | Reverse-engineer DNA from existing codebase |
 | **Mutate DNA** | "update DNA", "this decision changed" | Safely update DNA with versioning and impact analysis |
 | **Create RNA** | "create RNA", "create harness" | Translate invariants into stack-specific rules |
+| **Subtraction Audit** | "what to remove", "project has sprawled" | Find what to delete — counteract accretion drift |
 
 Detailed mode descriptions: **[Modes EN](docs/modes-en.md)** | **[Modes RU](docs/modes-ru.md)**
 
+## The Core Criterion: Violation Indicator
+
+**An invariant you cannot observably violate is not an invariant — it's a slogan.**
+
+Every invariant in DNA must carry a **violation indicator**: a concrete, observable state of code, data, or behavior that shows the invariant is broken.
+
+```
+Bad:   "Quality takes priority over speed"
+       → no state can be pointed to as a violation
+
+Good:  "No conclusion is published without a source reference"
+       Violation indicator: output artifact contains a record with
+       a non-empty value and an empty provenance field
+```
+
+If you can't formulate a violation indicator, it's one of three things: a value (goes to axiology as a resolved dilemma), a hypothesis (goes to `ASSUMPTIONS.md`), or a formulation too broad to check (narrow it).
+
+## Invariants vs Hypotheses
+
+|  | `DNA.md` | `ASSUMPTIONS.md` |
+|---|---|---|
+| Contains | Invariants | Hypotheses |
+| Changes | Only via formal mutation | As they get tested — normal work |
+| Status | — | `VERIFIED` / `UNVERIFIED` / `FAILED` |
+
+The test: **what would have to happen for this to stop being true?** "Nothing, it's a property of the domain" → invariant. "We might discover we were wrong" → hypothesis.
+
+Mixing them is why DNA either fossilizes (hypotheses can't be revised because "it's DNA") or becomes worthless (rewritten weekly because "it all changes anyway").
+
 ## The Four Layers
 
-DNA is built on four philosophical layers:
+DNA is built on four philosophical layers, each with **two sides** — positive (what must be) and negative (what must never appear):
 
 ```mermaid
 graph TB
-    subgraph DNA["DNA Document"]
+    subgraph POS["Positive — what must be"]
         ONT["Ontology<br/><i>What exists and how it connects</i>"]
-        DEO["Deontology<br/><i>What is permitted and forbidden</i>"]
-        AXI["Axiology<br/><i>What is valuable and what is not</i>"]
+        DEO["Deontology<br/><i>What is permitted</i>"]
+        AXI["Axiology<br/><i>Resolved dilemmas</i>"]
         PRA["Praxeology<br/><i>How to act</i>"]
     end
-    
-    ONT --> DEO --> AXI --> PRA
+    subgraph NEG["Negative — what must never appear"]
+        NDO["Deliberately not built"]
+        NRE["Rejected approaches"]
+        NPA["Forbidden patterns"]
+    end
+
+    POS -.->|"protects against<br/>accretion drift"| NEG
 
     style ONT fill:#2d6a4f,stroke:#1b4332,color:#fff
     style DEO fill:#40916c,stroke:#2d6a4f,color:#fff
     style AXI fill:#52b788,stroke:#40916c,color:#000
     style PRA fill:#95d5b2,stroke:#52b788,color:#000
+    style NDO fill:#e76f51,stroke:#c1440e,color:#fff
+    style NRE fill:#e9825f,stroke:#c1440e,color:#fff
+    style NPA fill:#f0a08a,stroke:#c1440e,color:#000
 ```
+
+Most DNA documents record only the positive side. That's a mistake: without explicit **negative invariants** a project sprawls through accretion — each addition looks reasonable on its own, and the sum destroys coherence. Strong products are defined not by what's in them but by what is **deliberately absent**.
+
+Axiology is **resolved dilemmas**, not a list of values. An agent can't apply a list of good things; it can only apply a rule of choice: *"when A and B are incompatible → choose A, because […]"*.
 
 ## Installation
 
@@ -135,10 +190,18 @@ Copy `skills/project-dna/SKILL.md` to your agent's skills directory. The skill f
 |----------|----|----|
 | Quick Start | [quickstart-en.md](docs/quickstart-en.md) | [quickstart-ru.md](docs/quickstart-ru.md) |
 | Three-Skill Ecosystem | [ecosystem-en.md](docs/ecosystem-en.md) | [ecosystem-ru.md](docs/ecosystem-ru.md) |
-| Five Modes (detailed) | [modes-en.md](docs/modes-en.md) | [modes-ru.md](docs/modes-ru.md) |
+| Six Modes (detailed) | [modes-en.md](docs/modes-en.md) | [modes-ru.md](docs/modes-ru.md) |
 | Full Methodology | [methodology-en.md](references/methodology-en.md) | [methodology-ru.md](references/methodology-ru.md) |
-| Example DNA | [example-dna.md](examples/example-dna.md) | |
-| Example RNA | [example-rna.md](examples/example-rna.md) | |
+
+**Examples** — a complete worked set from one project:
+
+| Artifact | File |
+|----------|------|
+| DNA with violation indicators, negative and numeric invariants | [example-dna.md](examples/example-dna.md) |
+| ASSUMPTIONS — hypotheses with status | [example-assumptions.md](examples/example-assumptions.md) |
+| RNA — each check derived from a violation indicator, plus ANCHORS | [example-rna.md](examples/example-rna.md) |
+
+**Skills** — all three of the ecosystem live in [`skills/`](skills/).
 
 ## License
 
@@ -213,8 +276,21 @@ graph LR
 | Скилл | Домен | Вопрос |
 |-------|-------|--------|
 | **project-dna** | Инварианты | *Что нельзя нарушить и почему?* |
-| **architect-cc-workflow** | Дисциплина исполнения | *Как взаимодействовать с AI без ошибок?* |
+| **architect-cc-workflow** | Дисциплина исполнения | *Как обе стороны ловят ошибки друг друга?* |
 | **research-with-ai** | Эпистемика | *Откуда мы знаем, что это правда?* |
+
+Скиллы включаются последовательно и стыкуются механизм в механизм:
+
+```
+research-with-ai (Режим 8)  →  project-dna  →  architect-cc-workflow
+   разведка области            инварианты        исполнение
+```
+
+| project-dna | ↔ | architect-cc-workflow |
+|---|---|---|
+| Признак нарушения | ↔ | Regression suite (§16) |
+| Pre-action protocol | ↔ | Phase-end report |
+| Числовые инварианты (§7) | ↔ | Verification anchors (§14.1) |
 
 ## Быстрый старт
 
@@ -224,7 +300,7 @@ graph LR
 
 Полный пошаговый гайд: **[Quickstart RU](docs/quickstart-ru.md)** | **[Quickstart EN](docs/quickstart-en.md)**
 
-## Пять режимов
+## Шесть режимов
 
 | Режим | Триггер | Что делает |
 |-------|---------|-----------|
@@ -233,27 +309,71 @@ graph LR
 | **Извлечение DNA** | «извлеки DNA», «что у нас за инварианты» | Обратное проектирование DNA из кода |
 | **Мутация DNA** | «обнови DNA», «это решение изменилось» | Обновление DNA с версионированием |
 | **Создание RNA** | «создай RNA», «создай harness» | Трансляция инвариантов в правила стека |
+| **Subtraction-аудит** | «что удалить», «проект разросся» | Поиск лишнего — противодействие accretion |
 
 Подробное описание режимов: **[Modes RU](docs/modes-ru.md)** | **[Modes EN](docs/modes-en.md)**
 
+## Главный критерий: признак нарушения
+
+**Инвариант, который нельзя нарушить наблюдаемо, — не инвариант, а лозунг.**
+
+Каждый инвариант в DNA обязан иметь **признак нарушения**: конкретное наблюдаемое состояние кода, данных или поведения, по которому видно, что инвариант нарушен.
+
+```
+Плохо:   «Приоритет качества над скоростью»
+         → нельзя указать состояние, показывающее нарушение
+
+Хорошо:  «Ни один вывод не публикуется без указания источника»
+         Признак нарушения: в выходном артефакте есть запись
+         с непустым значением и пустым полем провенанса
+```
+
+Не удаётся сформулировать признак — одно из трёх: это ценность (в аксиологию как разрешённая дилемма), гипотеза (в `ASSUMPTIONS.md`) или слишком общая формулировка (сузить).
+
+## Инварианты vs гипотезы
+
+|  | `DNA.md` | `ASSUMPTIONS.md` |
+|---|---|---|
+| Содержит | Инварианты | Гипотезы |
+| Меняется | Только формальной мутацией | По мере проверки — обычная работа |
+| Статус | — | `VERIFIED` / `UNVERIFIED` / `FAILED` |
+
+Проверочный вопрос: **что должно произойти, чтобы это перестало быть верным?** «Ничего, это свойство домена» → инвариант. «Мы можем обнаружить, что ошиблись» → гипотеза.
+
+Смешение — причина, по которой DNA либо окаменевает (гипотезы нельзя пересмотреть, «это же DNA»), либо обесценивается (переписывается каждую неделю).
+
 ## Четыре слоя DNA
+
+Каждый слой имеет **две стороны** — позитивную (что должно быть) и негативную (что НЕ должно появиться):
 
 ```mermaid
 graph TB
-    subgraph DNA["Документ DNA"]
+    subgraph POS["Позитивные — что должно быть"]
         ONT["Онтология<br/><i>Что существует и как связано</i>"]
-        DEO["Деонтика<br/><i>Что допустимо и что запрещено</i>"]
-        AXI["Аксиология<br/><i>Что ценно и что нет</i>"]
+        DEO["Деонтика<br/><i>Что допустимо</i>"]
+        AXI["Аксиология<br/><i>Разрешённые дилеммы</i>"]
         PRA["Праксеология<br/><i>Как действовать</i>"]
     end
-    
-    ONT --> DEO --> AXI --> PRA
+    subgraph NEG["Негативные — что НЕ должно появиться"]
+        NDO["Намеренно не делаем"]
+        NRE["Отвергнутые решения"]
+        NPA["Запрещённые паттерны"]
+    end
+
+    POS -.->|"защита от<br/>accretion-дрейфа"| NEG
 
     style ONT fill:#2d6a4f,stroke:#1b4332,color:#fff
     style DEO fill:#40916c,stroke:#2d6a4f,color:#fff
     style AXI fill:#52b788,stroke:#40916c,color:#000
     style PRA fill:#95d5b2,stroke:#52b788,color:#000
+    style NDO fill:#e76f51,stroke:#c1440e,color:#fff
+    style NRE fill:#e9825f,stroke:#c1440e,color:#fff
+    style NPA fill:#f0a08a,stroke:#c1440e,color:#000
 ```
+
+Большинство DNA фиксирует только позитивную сторону. Это ошибка: без явных **негативных инвариантов** проект разрастается через accretion — каждое добавление выглядит разумным, а сумма разрушает целостность. Сильные продукты определяются тем, что в них **намеренно отсутствует**.
+
+Аксиология — это **разрешённые дилеммы**, а не список ценностей. Агент не может применить перечень хороших вещей, он применяет правило выбора: *«когда нельзя одновременно A и B → выбираем A, потому что […]»*.
 
 ## Установка
 
@@ -274,10 +394,18 @@ cp -r skills/project-dna .claude/skills/
 |----------|----|----|
 | Быстрый старт | [quickstart-ru.md](docs/quickstart-ru.md) | [quickstart-en.md](docs/quickstart-en.md) |
 | Экосистема трёх скиллов | [ecosystem-ru.md](docs/ecosystem-ru.md) | [ecosystem-en.md](docs/ecosystem-en.md) |
-| Пять режимов (подробно) | [modes-ru.md](docs/modes-ru.md) | [modes-en.md](docs/modes-en.md) |
+| Шесть режимов (подробно) | [modes-ru.md](docs/modes-ru.md) | [modes-en.md](docs/modes-en.md) |
 | Полная методология | [methodology-ru.md](references/methodology-ru.md) | [methodology-en.md](references/methodology-en.md) |
-| Пример DNA | [example-dna.md](examples/example-dna.md) | |
-| Пример RNA | [example-rna.md](examples/example-rna.md) | |
+
+**Примеры** — полный связный набор из одного проекта:
+
+| Артефакт | Файл |
+|----------|------|
+| DNA с признаками нарушения, негативными и числовыми инвариантами | [example-dna.md](examples/example-dna.md) |
+| ASSUMPTIONS — гипотезы со статусами | [example-assumptions.md](examples/example-assumptions.md) |
+| RNA — каждая проверка выведена из признака нарушения, плюс ANCHORS | [example-rna.md](examples/example-rna.md) |
+
+**Скиллы** — все три из экосистемы лежат в [`skills/`](skills/).
 
 ## Лицензия
 
