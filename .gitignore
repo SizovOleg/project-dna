@@ -3,3 +3,6 @@ Thumbs.db
 *.swp
 *.swo
 *~
+
+# собираемые архивы — воспроизводятся scripts/build_skill_archives.py
+dist/
